@@ -5,10 +5,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
-from .serializers import (
-    UserSerializer,
-    LogoutSerializer
-)
+from .serializers import UserSerializer, LogoutSerializer
 from social.models import Profile
 
 
@@ -23,9 +20,9 @@ class CreateUserView(generics.CreateAPIView):
             user_instance = User.objects.get(pk=user_data["id"])
 
             profile_data = {
-                'first_name': request.data.get('first_name', ''),
-                'last_name': request.data.get('last_name', ''),
-                'bio': request.data.get('bio', ''),
+                "first_name": request.data.get("first_name", ""),
+                "last_name": request.data.get("last_name", ""),
+                "bio": request.data.get("bio", ""),
             }
 
             Profile.objects.create(user=user_instance, **profile_data)
@@ -45,6 +42,7 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 class LogoutView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LogoutSerializer
+
     def post(self, request):
         try:
             refresh_token = request.data["refresh_token"]

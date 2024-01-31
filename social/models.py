@@ -23,6 +23,7 @@ class Post(models.Model):
     class Meta:
         unique_together = ["title", "description"]
 
+
 def profile_picture_file_path(instance, filename):
     _, extension = os.path.splitext(filename)
     filename = f"{slugify(instance.last_name)}-{uuid.uuid4()}{extension}"
@@ -47,38 +48,30 @@ class Profile(models.Model):
         blank=True,
         upload_to=profile_picture_file_path
     )
+    followers = models.ManyToManyField(
+        get_user_model(), blank=True, related_name="followers_profile"
+    )
+    is_following = models.ManyToManyField(
+        get_user_model(), blank=True, related_name="is_following_profile"
+    )
+    # follow = models.BooleanField(default=False)
+    FOLLOW_CHOICES = (
+        ("F", "Follow"),
+        ("U", "Unfollow"),
+    )
+    follow = models.CharField(max_length=1, choices=FOLLOW_CHOICES)
 
-    def save(self, *args, **kwargs):
-        if self.user:
-            self.first_name = self.user.first_name
-            print(self.user.first_name)
-            self.last_name = self.user.last_name
-            self.bio = self.user.bio
-
-        super(Profile, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.user:
+    #         self.first_name = self.user.first_name
+    #         self.last_name = self.user.last_name
+    #         self.bio = self.user.bio
+    #
+    #     super(Profile, self).save(*args, **kwargs)
 
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
-
-    def clean(self):
-        existing_profile = Profile.objects.filter(
-            user=self.user
-        ).exclude(pk=self.pk).exists()
-        if existing_profile:
-            raise ValidationError("A profile for this user already exists")
-
-    def save(
-        self,
-        force_insert=False,
-        force_update=False,
-        using=None,
-        update_fields=None,
-    ):
-        self.full_clean()
-        super(Profile, self).save(
-            force_insert, force_update, using, update_fields
-        )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({get_user_model().email})"
