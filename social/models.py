@@ -1,27 +1,18 @@
 import uuid
-
+import os
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-import os
-
 from django.utils.text import slugify
-from rest_framework.exceptions import ValidationError
-from users.models import User
+from taggit.managers import TaggableManager
 
 
-class Post(models.Model):
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT
-    )
-
-    def __str__(self):
-        return f"{self.title} ({self.user})"
-
-    class Meta:
-        unique_together = ["title", "description"]
+# class CustomTaggableManager(TaggableManager):
+#     def value_from_object(self, instance):
+#         value = super().value_from_object(instance)
+#         if isinstance(value, str):
+#             return value.split(',')
+#         return value
 
 
 def profile_picture_file_path(instance, filename):
@@ -54,20 +45,11 @@ class Profile(models.Model):
     is_following = models.ManyToManyField(
         get_user_model(), blank=True, related_name="is_following_profile"
     )
-    # follow = models.BooleanField(default=False)
     FOLLOW_CHOICES = (
         ("F", "Follow"),
         ("U", "Unfollow"),
     )
     follow = models.CharField(max_length=1, choices=FOLLOW_CHOICES)
-
-    # def save(self, *args, **kwargs):
-    #     if self.user:
-    #         self.first_name = self.user.first_name
-    #         self.last_name = self.user.last_name
-    #         self.bio = self.user.bio
-    #
-    #     super(Profile, self).save(*args, **kwargs)
 
     @property
     def full_name(self):
@@ -75,3 +57,36 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({get_user_model().email})"
+
+
+def post_picture_file_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+    filename = f"{slugify(instance.title)}-{uuid.uuid4()}{extension}"
+
+    return os.path.join("uploads/posts/", filename)
+
+class Post(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT
+    )
+    image = models.ImageField(
+        null=True,
+        blank=True,
+        upload_to=post_picture_file_path
+    )
+    hashtags = TaggableManager()
+    follow = models.CharField(
+        max_length=1,
+        choices=Profile.FOLLOW_CHOICES,
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return f"{self.title} ({self.user})"
+
+    class Meta:
+        unique_together = ["title", "description"]
+

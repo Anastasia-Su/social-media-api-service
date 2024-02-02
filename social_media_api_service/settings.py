@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "debug_toolbar",
     "rest_framework_simplejwt.token_blacklist",
+    "taggit",
     "social",
     "users",
 ]
@@ -171,3 +172,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
 }
+
+TAGGIT_CASE_INSENSITIVE = True
+TAGGIT_TAGS_FROM_STRING = 'taggit.utils.parse_tags'

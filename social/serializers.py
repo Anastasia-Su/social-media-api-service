@@ -1,28 +1,66 @@
-from django.db import IntegrityError
 from rest_framework import serializers
+from taggit.models import Tag
+from taggit.serializers import TaggitSerializer, TagListSerializerField
+
 from .models import Post, Profile
 
 
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ["id", "title", "description"]
-
-
-class PostListSerializer(serializers.ModelSerializer):
+class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
     user = serializers.CharField(
         read_only=True, source="user.email"
     )
+    hashtags = TagListSerializerField()
 
     class Meta:
         model = Post
-        fields = ["id", "title", "description", "user"]
+        fields = [
+            "id",
+            "title",
+            "description",
+            "user",
+            "image",
+            "hashtags",
+            "follow"
+        ]
+
+
+class PostListSerializer(PostSerializer):
+    class Meta:
+        model = Post
+        fields = [
+            "id",
+            "title",
+            "description",
+            "user",
+            "image",
+            "hashtags"
+        ]
+
+
+class PostDetailSerializer(PostListSerializer):
+    class Meta:
+        model = Post
+        fields = [
+            "id",
+            "title",
+            "description",
+            "user",
+            "image",
+            "hashtags"
+        ]
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ["id", "first_name", "last_name", "bio", "image", "follow"]
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "bio",
+            "image",
+            "follow"
+        ]
 
 
 class ProfileListSerializer(ProfileSerializer):
@@ -32,7 +70,6 @@ class ProfileListSerializer(ProfileSerializer):
 
     def get_followers(self, obj):
         return f"{len(obj.followers.all())} user(s)"
-
 
     def get_is_following(self, obj):
         return f"{len(obj.is_following.all())} user(s)"
@@ -79,15 +116,15 @@ class ProfileDetailSerializer(ProfileSerializer):
         ]
 
 
-class ProfileImageSerializer(ProfileSerializer):
-    class Meta:
-        model = Profile
-        fields = ["id", "image"]
-
-
 class FollowActionSerializer(ProfileSerializer):
     class Meta:
         model = Profile
+        fields = ["follow"]
+
+
+class FollowPostActionSerializer(PostSerializer):
+    class Meta:
+        model = Post
         fields = ["follow"]
 
 

@@ -1,10 +1,9 @@
-from django.db.models import Q, Count
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
+from .mixins import PostMixin, ToggleFollowMixin
 from .models import Post, Profile
 from .permissions import (
     IsLoggedIn,
@@ -14,31 +13,20 @@ from .permissions import (
 
 from .serializers import (
     PostSerializer,
-    PostListSerializer,
     ProfileSerializer,
     ProfileListSerializer,
     ProfileDetailSerializer,
-    ProfileImageSerializer,
     FollowActionSerializer,
-    # FollowListSerializer,
 )
 
 
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(PostMixin, viewsets.ModelViewSet):
     queryset = Post.objects.select_related("user")
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated,)
 
-    def get_serializer_class(self):
-        if self.action == "list":
-            return PostListSerializer
-        return PostSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class ProfileViewSet(viewsets.ModelViewSet):
+class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
     queryset = Profile.objects.select_related("user")
     serializer_class = ProfileSerializer
     permission_classes = (IsAuthenticatedReadOnly,)
@@ -69,16 +57,18 @@ class ProfileViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
 
+    @staticmethod
+    def _params_to_ints(qs):
+        """Converts a list of string IDs to a list of integers"""
+        return [int(str_id) for str_id in qs.split(",")]
+
     def get_queryset(self):
-        user = self.request.query_params.get("user")
+        users = self.request.query_params.get("users")
         queryset = self.queryset.all()
 
-        if user:
-            queryset = queryset.filter(
-                Q(user__email__icontains=user)
-                | Q(first_name__icontains=user)
-                | Q(last_name__icontains=user)
-            )
+        if users:
+            users_ids = self._params_to_ints(users)
+            queryset = queryset.filter(user__id__in=users_ids)
 
         return queryset
 
@@ -90,22 +80,23 @@ class ProfileViewSet(viewsets.ModelViewSet):
     )
     def toggle_follow(self, request, pk):
         profile = get_object_or_404(Profile, pk=pk)
+        return self.toggle_follow_common(request, profile)
 
-        if request.method == "POST" and request.user.profile != profile:
-            follow_status = request.data.get("follow", "")
-            if follow_status == "U":
-                profile.followers.remove(request.user)
-                request.user.profile.is_following.remove(profile.user)
-            if follow_status == "F":
-                profile.followers.add(request.user)
-                request.user.profile.is_following.add(profile.user)
 
-            profile.save()
+class IFollowViewSet(PostViewSet, ToggleFollowMixin, PostMixin):
+    def get_queryset(self):
+        queryset = PostMixin.get_queryset(self)
+        user = self.request.user.profile
+        following_profiles = user.is_following.all()
+        queryset = queryset.filter(user__in=following_profiles)
+        return queryset
 
-            serializer = self.get_serializer(profile, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="toggle-follow",
+        permission_classes=[IsAuthenticated],
+    )
+    def toggle_follow(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
+        return self.toggle_follow_common(request, post)

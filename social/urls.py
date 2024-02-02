@@ -4,11 +4,14 @@ from rest_framework import routers
 from .views import (
     PostViewSet,
     ProfileViewSet,
+    IFollowViewSet,
+
 )
 
 router = routers.DefaultRouter()
 
 router.register("posts", PostViewSet)
+router.register("ifollow", IFollowViewSet)
 router.register("profiles", ProfileViewSet)
 
 urlpatterns = [path("", include(router.urls))]
