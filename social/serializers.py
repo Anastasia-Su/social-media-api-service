@@ -2,13 +2,26 @@ from rest_framework import serializers
 from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
-from .models import Post, Profile
+from .models import Post, Profile, Comment
+
+
+def populate_comment_data(query):
+    comment_data = []
+    for comment in query:
+        comment_data.append(
+            {
+                "text": comment.text,
+                "user": str(comment.user),
+                "is_reply": comment.is_reply,
+                "parent": comment.parent.id if comment.parent else None,
+            }
+        )
+
+    return comment_data
 
 
 class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
-    user = serializers.CharField(
-        read_only=True, source="user.email"
-    )
+    user = serializers.CharField(read_only=True, source="user.email")
     hashtags = TagListSerializerField()
 
     class Meta:
@@ -20,24 +33,22 @@ class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
             "user",
             "image",
             "hashtags",
-            "follow"
         ]
 
 
 class PostListSerializer(PostSerializer):
     class Meta:
         model = Post
-        fields = [
-            "id",
-            "title",
-            "description",
-            "user",
-            "image",
-            "hashtags"
-        ]
+        fields = ["id", "title", "description", "user", "image", "hashtags"]
 
 
 class PostDetailSerializer(PostListSerializer):
+    comments = serializers.SerializerMethodField(read_only=True)
+
+    def get_comments(self, obj):
+        comments = obj.post_comments.all()
+        return populate_comment_data(comments)
+
     class Meta:
         model = Post
         fields = [
@@ -46,7 +57,8 @@ class PostDetailSerializer(PostListSerializer):
             "description",
             "user",
             "image",
-            "hashtags"
+            "hashtags",
+            "comments"
         ]
 
 
@@ -79,7 +91,9 @@ class ProfileListSerializer(ProfileSerializer):
 
     class Meta:
         model = Profile
-        fields = ["id", "user", "image", "followers", "is_following"]
+        fields = [
+            "id", "user", "image", "followers", "is_following"
+        ]
 
 
 class ProfileDetailSerializer(ProfileSerializer):
@@ -95,10 +109,10 @@ class ProfileDetailSerializer(ProfileSerializer):
     def get_is_following(self, obj):
         return [
             (
-             f"{member.profile.first_name} "
-             f"{member.profile.last_name} "
-             f"({member.profile.user.email})"
-             )
+                f"{member.profile.first_name} "
+                f"{member.profile.last_name} "
+                f"({member.profile.user.email})"
+            )
             for member in obj.is_following.all()
         ]
 
@@ -112,7 +126,7 @@ class ProfileDetailSerializer(ProfileSerializer):
             "bio",
             "image",
             "is_following",
-            "followers"
+            "followers",
         ]
 
 
@@ -128,3 +142,74 @@ class FollowPostActionSerializer(PostSerializer):
         fields = ["follow"]
 
 
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = [
+            "id", "post", "user", "text", "is_reply", "parent"
+        ]
+
+
+class CommentListSerializer(CommentSerializer):
+    commented_by = serializers.SerializerMethodField(read_only=True)
+    post = serializers.SerializerMethodField(read_only=True)
+    author = serializers.SerializerMethodField(read_only=True)
+
+    def get_post(self, obj):
+        if obj.parent:
+            return obj.parent.post.title
+        return obj.post.title
+
+    def get_author(self, obj):
+        root = obj.post.user
+        if obj.parent:
+            root = obj.parent.post.user
+        return f"{root.profile.first_name} " f"{root.profile.last_name} ({root.email})"
+
+    def get_commented_by(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name} ({obj.user.email})"
+
+    class Meta:
+        model = Comment
+        fields = [
+            "id",
+            "post",
+            "author",
+            "commented_by",
+            "text",
+            "is_reply",
+            "parent"
+        ]
+
+
+class CommentDetailSerializer(CommentListSerializer):
+    replies = serializers.SerializerMethodField(read_only=True)
+
+    def get_replies(self, obj):
+        comments = obj.comments.filter(is_reply=True)
+        return populate_comment_data(comments)
+
+    class Meta:
+        model = Comment
+        fields = [
+            "id",
+            "post",
+            "author",
+            "commented_by",
+            "text",
+            "is_reply",
+            "parent",
+            "replies",
+        ]
+
+
+class CommentCreateSerializer(CommentSerializer):
+    class Meta:
+        model = Comment
+        fields = ["id", "text"]
+
+
+class CommentReplySerializer(CommentSerializer):
+    class Meta:
+        model = Comment
+        fields = ["id", "text"]

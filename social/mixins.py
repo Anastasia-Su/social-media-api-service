@@ -1,31 +1,23 @@
 from django.db.models import Q
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Post, Profile
 from .permissions import (
     IsLoggedIn,
-    IsAdminOrIfAuthenticatedReadOnly,
     IsAuthenticatedReadOnly,
 )
 
 from .serializers import (
     PostSerializer,
     PostListSerializer,
-    ProfileSerializer,
-    ProfileListSerializer,
-    ProfileDetailSerializer,
-    FollowActionSerializer,
     PostDetailSerializer,
-    FollowPostActionSerializer
+    FollowPostActionSerializer, CommentCreateSerializer
 )
 
 
 class ToggleFollowMixin:
-    def toggle_follow_common(self, request, instance=None):
+    def toggle_follow_common(self, request, instance):
         profile = instance.user.profile
 
         if request.method == "POST" and request.user.profile != profile:
@@ -59,13 +51,16 @@ class PostMixin:
         if self.action == "toggle_follow":
             return FollowPostActionSerializer
 
+        if self.action == "add_comment":
+            return CommentCreateSerializer
+
         return PostSerializer
 
     def get_permissions(self):
-        if self.action == "update":
+        if self.action == "update" or self.action == "destroy":
             return [IsLoggedIn()]
 
-        if self.action in ["list", "create", "toggle_follow"]:
+        if self.action in ["list", "create", "toggle_follow", "add_comment"]:
             return [IsAuthenticated()]
 
         return [IsAuthenticatedReadOnly()]

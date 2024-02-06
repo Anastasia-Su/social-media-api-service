@@ -1,10 +1,12 @@
-from rest_framework import viewsets
+from django.db.models import Q
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from .mixins import PostMixin, ToggleFollowMixin
-from .models import Post, Profile
+from .models import Post, Profile, Comment
 from .permissions import (
     IsLoggedIn,
     IsAdminOrIfAuthenticatedReadOnly,
@@ -17,6 +19,11 @@ from .serializers import (
     ProfileListSerializer,
     ProfileDetailSerializer,
     FollowActionSerializer,
+    CommentSerializer,
+    CommentCreateSerializer,
+    CommentListSerializer,
+    CommentDetailSerializer,
+    CommentReplySerializer,
 )
 
 
@@ -24,6 +31,28 @@ class PostViewSet(PostMixin, viewsets.ModelViewSet):
     queryset = Post.objects.select_related("user")
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated,)
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="add-comment",
+        permission_classes=[IsAuthenticated],
+    )
+    def add_comment(self, request, pk):
+        post = self.get_object()
+        user = request.user
+        text = request.data.get("text", "")
+
+        if request.method == "POST":
+            comment = Comment.objects.create(post=post, user=user, text=text)
+
+            serializer = self.get_serializer(comment, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
@@ -44,7 +73,7 @@ class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
         return ProfileSerializer
 
     def get_permissions(self):
-        if self.action == "update":
+        if self.action == "update" or self.action == "destroy":
             return [IsLoggedIn()]
         if self.action == "toggle_follow":
             return [IsAuthenticated()]
@@ -100,3 +129,75 @@ class IFollowViewSet(PostViewSet, ToggleFollowMixin, PostMixin):
     def toggle_follow(self, request, pk):
         post = get_object_or_404(Post, pk=pk)
         return self.toggle_follow_common(request, post)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        if self.action == "update" or self.action == "destroy":
+            return [IsLoggedIn()]
+        if self.action == "reply":
+            return [IsAuthenticated()]
+
+        return [IsAuthenticatedReadOnly()]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return CommentListSerializer
+        if self.action == "retrieve":
+            return CommentDetailSerializer
+        if self.action == "update":
+            return CommentCreateSerializer
+        if self.action == "reply":
+            return CommentReplySerializer
+
+        return CommentSerializer
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="reply",
+        permission_classes=[IsAuthenticated],
+    )
+    def reply(self, request, pk):
+        comment = self.get_object()
+        user = request.user
+        reply = request.data.get("reply", "")
+
+        if request.method == "POST":
+            comment = Comment.objects.create(
+                post=comment.post, user=user, text=reply, is_reply=True, parent=comment
+            )
+
+            serializer = self.get_serializer(comment, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_queryset(self):
+        user = self.request.query_params.get("user")
+        text = self.request.query_params.get("text")
+        queryset = self.queryset.all()
+
+        if user:
+            queryset = queryset.filter(
+                Q(user__email__icontains=user)
+                | Q(user__first_name__icontains=user)
+                | Q(user__last_name__icontains=user)
+            )
+        if text:
+            queryset = queryset.filter(text__icontains=text)
+
+        return queryset.distinct()

@@ -80,13 +80,38 @@ class Post(models.Model):
     follow = models.CharField(
         max_length=1,
         choices=Profile.FOLLOW_CHOICES,
-        null=True,
-        blank=True
+        default="U",
     )
+    comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
 
     def __str__(self):
         return f"{self.title} ({self.user})"
 
     class Meta:
         unique_together = ["title", "description"]
+
+
+class Comment(models.Model):
+    text = models.TextField()
+    post = models.ForeignKey(
+        Post, on_delete=models.PROTECT,
+        related_name="post_comments"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT
+    )
+    is_reply = models.BooleanField(default=False)
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="comments"
+    )
+    replies = models.ManyToManyField("Comment", blank=True)
+
+    def __str__(self):
+        return self.text
+
 

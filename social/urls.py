@@ -5,14 +5,16 @@ from .views import (
     PostViewSet,
     ProfileViewSet,
     IFollowViewSet,
+    CommentViewSet,
 
 )
 
 router = routers.DefaultRouter()
 
-router.register("posts", PostViewSet)
-router.register("ifollow", IFollowViewSet)
-router.register("profiles", ProfileViewSet)
+router.register("posts", PostViewSet, basename="posts")
+router.register("ifollow", IFollowViewSet, basename="ifollow")
+router.register("profiles", ProfileViewSet, basename="profiles")
+router.register("comments", CommentViewSet, basename="comments")
 
 urlpatterns = [path("", include(router.urls))]
 
