@@ -25,12 +25,41 @@ from .serializers import (
     CommentDetailSerializer,
     CommentReplySerializer,
 )
+from users.models import User
 
 
 class PostViewSet(PostMixin, viewsets.ModelViewSet):
     queryset = Post.objects.select_related("user")
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated,)
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="toggle-like",
+        permission_classes=[IsAuthenticated],
+    )
+    def toggle_like(self, request, pk):
+        post = self.get_object()
+
+        if request.method == "POST" and request.user.profile != post.user.profile:
+            like_status = request.data.get("like", "")
+            if like_status == "U":
+                post.liked_by.remove(request.user)
+                request.user.profile.i_like.remove(post)
+            if like_status in ["L", "D"]:
+                post.liked_by.add(request.user)
+                request.user.profile.i_like.add(post)
+
+            post.save()
+
+            serializer = self.get_serializer(instance=post, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         methods=["POST"],
@@ -76,6 +105,8 @@ class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
         if self.action == "update" or self.action == "destroy":
             return [IsLoggedIn()]
         if self.action == "toggle_follow":
+            return [IsAuthenticated()]
+        if self.action == "toggle_like":
             return [IsAuthenticated()]
 
         return [IsAuthenticatedReadOnly()]
@@ -129,6 +160,41 @@ class IFollowViewSet(PostViewSet, ToggleFollowMixin, PostMixin):
     def toggle_follow(self, request, pk):
         post = get_object_or_404(Post, pk=pk)
         return self.toggle_follow_common(request, post)
+
+
+class ILikeViewSet(PostViewSet, PostMixin, ProfileViewSet):
+    def get_queryset(self):
+        profile = Profile.objects.get(user=self.request.user)
+        queryset = profile.i_like.all()
+        return queryset
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="toggle-like",
+        permission_classes=[IsAuthenticated],
+    )
+    def toggle_like(self, request, pk):
+        post = self.get_object()
+
+        if request.method == "POST" and request.user.profile != post.user.profile:
+            like_status = request.data.get("like", "")
+            if like_status == "U":
+                post.liked_by.remove(request.user)
+                request.user.profile.i_like.remove(post)
+            if like_status in ["L", "D"]:
+                post.liked_by.add(request.user)
+                request.user.profile.i_like.add(post)
+
+            post.save()
+
+            serializer = self.get_serializer(instance=post, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -201,3 +267,5 @@ class CommentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(text__icontains=text)
 
         return queryset.distinct()
+
+

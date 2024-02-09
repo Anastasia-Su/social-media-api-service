@@ -51,6 +51,10 @@ class Profile(models.Model):
     )
     follow = models.CharField(max_length=1, choices=FOLLOW_CHOICES)
 
+    i_like = models.ManyToManyField(
+        "Post", blank=True, related_name="posts_i_like"
+    )
+
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
@@ -64,6 +68,7 @@ def post_picture_file_path(instance, filename):
     filename = f"{slugify(instance.title)}-{uuid.uuid4()}{extension}"
 
     return os.path.join("uploads/posts/", filename)
+
 
 class Post(models.Model):
     title = models.CharField(max_length=255)
@@ -82,6 +87,17 @@ class Post(models.Model):
         choices=Profile.FOLLOW_CHOICES,
         default="U",
     )
+
+    LIKE_CHOICES = (
+        ("L", "Like"),
+        ("D", "Dislike"),
+        ("U", "Unlike"),
+    )
+    like = models.CharField(max_length=1, choices=LIKE_CHOICES, default="U")
+    liked_by = models.ManyToManyField(
+        get_user_model(), blank=True, related_name="posts"
+    )
+
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
 
     def __str__(self):

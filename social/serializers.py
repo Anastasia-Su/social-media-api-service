@@ -37,13 +37,27 @@ class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
 
 
 class PostListSerializer(PostSerializer):
+    liked_by = serializers.SerializerMethodField(read_only=True)
+
+    def get_liked_by(self, obj):
+        return f"{len(obj.liked_by.all())} user(s)"
+
     class Meta:
         model = Post
-        fields = ["id", "title", "description", "user", "image", "hashtags"]
+        fields = [
+            "id", "title", "description", "user", "image", "hashtags", "liked_by"
+        ]
 
 
 class PostDetailSerializer(PostListSerializer):
     comments = serializers.SerializerMethodField(read_only=True)
+    liked_by = serializers.SerializerMethodField(read_only=True)
+
+    def get_liked_by(self, obj):
+        return [
+            f"{member.first_name} {member.last_name} ({member.email}): {obj.like}"
+            for member in obj.liked_by.all()
+        ]
 
     def get_comments(self, obj):
         comments = obj.post_comments.all()
@@ -58,7 +72,8 @@ class PostDetailSerializer(PostListSerializer):
             "user",
             "image",
             "hashtags",
-            "comments"
+            "comments",
+            "liked_by"
         ]
 
 
@@ -139,7 +154,14 @@ class FollowActionSerializer(ProfileSerializer):
 class FollowPostActionSerializer(PostSerializer):
     class Meta:
         model = Post
-        fields = ["follow"]
+        fields = ["id", "follow"]
+
+
+class LikePostActionSerializer(PostSerializer):
+    class Meta:
+        model = Post
+        fields = ["id", "like"]
+
 
 
 class CommentSerializer(serializers.ModelSerializer):

@@ -12,7 +12,7 @@ from .serializers import (
     PostSerializer,
     PostListSerializer,
     PostDetailSerializer,
-    FollowPostActionSerializer, CommentCreateSerializer
+    FollowPostActionSerializer, CommentCreateSerializer, LikePostActionSerializer
 )
 
 
@@ -51,6 +51,9 @@ class PostMixin:
         if self.action == "toggle_follow":
             return FollowPostActionSerializer
 
+        if self.action == "toggle_like":
+            return LikePostActionSerializer
+
         if self.action == "add_comment":
             return CommentCreateSerializer
 
@@ -60,7 +63,7 @@ class PostMixin:
         if self.action == "update" or self.action == "destroy":
             return [IsLoggedIn()]
 
-        if self.action in ["list", "create", "toggle_follow", "add_comment"]:
+        if self.action in ["list", "create", "toggle_follow", "add_comment", "toggle_like"]:
             return [IsAuthenticated()]
 
         return [IsAuthenticatedReadOnly()]
