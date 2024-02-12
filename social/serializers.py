@@ -163,7 +163,6 @@ class LikePostActionSerializer(PostSerializer):
         fields = ["id", "like"]
 
 
-
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment

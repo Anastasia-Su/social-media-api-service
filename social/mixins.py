@@ -1,19 +1,5 @@
-from django.db.models import Q
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
-from .permissions import (
-    IsLoggedIn,
-    IsAuthenticatedReadOnly,
-)
-
-from .serializers import (
-    PostSerializer,
-    PostListSerializer,
-    PostDetailSerializer,
-    FollowPostActionSerializer, CommentCreateSerializer, LikePostActionSerializer
-)
 
 
 class ToggleFollowMixin:
@@ -40,62 +26,23 @@ class ToggleFollowMixin:
         return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PostMixin:
-    def get_serializer_class(self):
-        if self.action == "list":
-            return PostListSerializer
+class ToggleLikeMixin:
+    def toggle_like_common(self, request, post):
+        if request.method == "POST" and request.user.profile != post.user.profile:
+            like_status = request.data.get("like", "")
+            if like_status == "U":
+                post.liked_by.remove(request.user)
+                request.user.profile.i_like.remove(post)
+            if like_status in ["L", "D"]:
+                post.liked_by.add(request.user)
+                request.user.profile.i_like.add(post)
 
-        if self.action == "retrieve":
-            return PostDetailSerializer
+            post.save()
 
-        if self.action == "toggle_follow":
-            return FollowPostActionSerializer
+            serializer = self.get_serializer(instance=post, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-        if self.action == "toggle_like":
-            return LikePostActionSerializer
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-        if self.action == "add_comment":
-            return CommentCreateSerializer
-
-        return PostSerializer
-
-    def get_permissions(self):
-        if self.action == "update" or self.action == "destroy":
-            return [IsLoggedIn()]
-
-        if self.action in ["list", "create", "toggle_follow", "add_comment", "toggle_like"]:
-            return [IsAuthenticated()]
-
-        return [IsAuthenticatedReadOnly()]
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    @staticmethod
-    def _split_params(qs):
-        """Converts a list of string IDs to a list of strings"""
-        return [tag.strip() for tag in qs.split(",")]
-
-    def get_queryset(self):
-        user = self.request.query_params.get("user")
-        text = self.request.query_params.get("text")
-        tags = self.request.query_params.get("tags")
-        queryset = self.queryset.all()
-
-        if user:
-            queryset = queryset.filter(
-                Q(user__email__icontains=user)
-                | Q(user__first_name__icontains=user)
-                | Q(user__last_name__icontains=user)
-            )
-        if text:
-            queryset = queryset.filter(
-                Q(title__icontains=text)
-                | Q(description__icontains=text)
-            )
-
-        if tags:
-            splitted_tags = self._split_params(tags)
-            queryset = queryset.filter(hashtags__name__in=splitted_tags)
-
-        return queryset.distinct()
+        return Response({"error": "Invalid method"}, status=status.HTTP_400_BAD_REQUEST)
