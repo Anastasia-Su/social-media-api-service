@@ -9,10 +9,11 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
+import os, django
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
-
 
 load_dotenv()
 
@@ -51,6 +52,7 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "rest_framework_simplejwt.token_blacklist",
     "taggit",
+    "django_celery_beat",
     "social",
     "users",
 ]
@@ -174,4 +176,18 @@ SIMPLE_JWT = {
 }
 
 TAGGIT_CASE_INSENSITIVE = True
-TAGGIT_TAGS_FROM_STRING = 'taggit.utils.parse_tags'
+TAGGIT_TAGS_FROM_STRING = "taggit.utils.parse_tags"
+
+
+CELERY_BROKER_URL = "redis://localhost:6379/1"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+CELERY_TIMEZONE = "Europe/Kiev"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+#
+# CELERY_BEAT_SCHEDULE = {
+#     "delay_post_creation": {
+#         "task": "social.tasks.delay_post_creation",
+#         "schedule": timedelta(minutes=0.5),
+#     },
+# }

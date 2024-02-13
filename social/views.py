@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -31,6 +32,8 @@ from .serializers import (
     CommentDetailSerializer,
     CommentReplySerializer,
 )
+
+from .tasks import delay_post_creation
 
 
 class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
@@ -116,13 +119,28 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
 
         return [IsAuthenticatedReadOnly()]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
     @staticmethod
     def _split_params(qs):
         """Converts a list of string IDs to a list of strings"""
         return [tag.strip() for tag in qs.split(",")]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task_result = delay_post_creation.apply_async(
+            args=[request.user.id, serializer.data], countdown=30
+        )
+        # task_result = task_result.get()
+
+        if not task_result:
+            return Response({"error": "Failed to schedule task"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 
     def get_queryset(self):
         user = self.request.query_params.get("user")
