@@ -58,9 +58,9 @@ class Profile(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
-    #
-    # def __str__(self):
-    #     return f"{self.first_name} {self.last_name} ({get_user_model().email})"
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({get_user_model().email})"
 
 
 def post_picture_file_path(instance, filename):
@@ -100,8 +100,8 @@ class Post(models.Model):
 
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
 
-    # def __str__(self):
-    #     return f"{self.title} ({self.user})"
+    def __str__(self):
+        return f"{self.title} ({self.user})"
 
     class Meta:
         unique_together = ["title", "description"]

@@ -1,4 +1,6 @@
 from django.db.models import Q
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -146,6 +148,28 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
 
         return queryset.distinct()
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "text",
+                type=OpenApiTypes.STR,
+                description="Filter by post text (ex. ?text=post)",
+            ),
+            OpenApiParameter(
+                "user",
+                type=OpenApiTypes.STR,
+                description="Filter by user (ex. ?user=j)",
+            ),
+            OpenApiParameter(
+                "tags",
+                type=OpenApiTypes.STR,
+                description="Filter by tags (ex. ?tags=cats,dogs)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
     queryset = (
@@ -204,6 +228,18 @@ class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
             queryset = queryset.filter(user__id__in=users_ids)
 
         return queryset
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "users",
+                type=OpenApiTypes.INT,
+                description="Filter by user id (ex. ?users=2,3)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class ILikeViewSet(PostViewSet, ProfileViewSet, ToggleLikeMixin):
