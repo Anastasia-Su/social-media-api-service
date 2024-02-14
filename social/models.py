@@ -131,3 +131,11 @@ class Comment(models.Model):
         return self.text
 
 
+class BlacklistToken(models.Model):
+    token = models.CharField(max_length=255)
+    blacklisted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.token
+
+

@@ -132,10 +132,10 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         task_result = delay_post_creation.apply_async(
             args=[request.user.id, serializer.data], countdown=30
         )
-        # task_result = task_result.get()
 
         if not task_result:
             return Response({"error": "Failed to schedule task"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response({"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED)
 
     def perform_create(self, serializer):

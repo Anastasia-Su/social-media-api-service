@@ -15,6 +15,7 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -170,9 +171,11 @@ SPECTACULAR_SETTINGS = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30000),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    # "TOKEN_BLACKLIST_MODEL": "rest_framework_simplejwt.token_blacklist.models.BlacklistedToken",
+    # 'BLACKLIST_AFTER_ROTATION': True,
 }
 
 TAGGIT_CASE_INSENSITIVE = True
