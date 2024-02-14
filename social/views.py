@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, status
@@ -34,22 +34,14 @@ from .serializers import (
 )
 
 from .tasks import delay_post_creation
+from users.models import User
 
 
 class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
     queryset = (
         Post.objects
         .select_related("user")
-        .prefetch_related(
-            "liked_by",
-            "hashtags",
-            "comments__profile",
-            "comments__post_title",
-            "comments__parent__profile",
-            "comments__user",
-            "comments__replies__user__profile",
-            "comments__replies__post",
-        )
+        .prefetch_related("hashtags", "liked_by")
     )
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated,)
@@ -119,34 +111,32 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
 
         return [IsAuthenticatedReadOnly()]
 
-
     @staticmethod
     def _split_params(qs):
         """Converts a list of string IDs to a list of strings"""
         return [tag.strip() for tag in qs.split(",")]
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        task_result = delay_post_creation.apply_async(
-            args=[request.user.id, serializer.data], countdown=30
-        )
-
-        if not task_result:
-            return Response({"error": "Failed to schedule task"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return Response({"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED)
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #
+    #     task_result = delay_post_creation.apply_async(
+    #         args=[request.user.id, serializer.data], countdown=30
+    #     )
+    #
+    #     if not task_result:
+    #         return Response({"error": "Failed to schedule task"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #
+    #     return Response({"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
 
     def get_queryset(self):
         user = self.request.query_params.get("user")
         text = self.request.query_params.get("text")
         tags = self.request.query_params.get("tags")
-        queryset = self.queryset.all()
+        queryset = self.queryset
 
         if user:
             queryset = queryset.filter(
@@ -156,8 +146,7 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
             )
         if text:
             queryset = queryset.filter(
-                Q(title__icontains=text)
-                | Q(description__icontains=text)
+                Q(title__icontains=text) | Q(description__icontains=text)
             )
 
         if tags:
@@ -190,9 +179,8 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
 
 
 class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
-    queryset = (
-        Profile.objects.select_related("user")
-        .prefetch_related("followers__profile", "is_following__profile")
+    queryset = Profile.objects.select_related("user").prefetch_related(
+        "followers__profile", "is_following__profile"
     )
     serializer_class = ProfileSerializer
     permission_classes = (IsAuthenticatedReadOnly,)
@@ -239,7 +227,7 @@ class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
 
     def get_queryset(self):
         users = self.request.query_params.get("users")
-        queryset = self.queryset.all()
+        queryset = self.queryset
 
         if users:
             users_ids = self._params_to_ints(users)
@@ -272,14 +260,11 @@ class ILikeViewSet(PostViewSet, ProfileViewSet, ToggleLikeMixin):
         return self.toggle_like_common(request, post)
 
     def get_queryset(self):
-        profile = (
-            Profile.objects.get(user=self.request.user))
+        profile = Profile.objects.get(user=self.request.user)
         queryset = (
             profile.i_like.all()
-            .select_related("user")
-            .prefetch_related(
-                "liked_by__profile", "hashtags"
-            )
+            # .select_related("user")
+            # .prefetch_related("liked_by__profile", "hashtags")
         )
         return queryset
 
@@ -304,11 +289,11 @@ class IFollowViewSet(PostViewSet, ToggleFollowMixin):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = (
-        Comment.objects
-        .select_related("user", "post__user", "post__user__profile", "parent__user")
-        .prefetch_related("replies__user", "replies__post", "replies__parent")
-    )
+    queryset = Comment.objects.select_related(
+        "user__profile",
+        "post__user__profile",
+        "parent__post__user__profile",
+    ).prefetch_related("replies__user", "replies__parent")
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -365,7 +350,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.query_params.get("user")
         text = self.request.query_params.get("text")
-        queryset = self.queryset.all()
+        queryset = self.queryset
 
         if user:
             queryset = queryset.filter(
@@ -377,5 +362,3 @@ class CommentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(text__icontains=text)
 
         return queryset.distinct()
-
-

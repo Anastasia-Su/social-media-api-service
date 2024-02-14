@@ -38,14 +38,30 @@ class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
 
 class PostListSerializer(PostSerializer):
     liked_by = serializers.SerializerMethodField(read_only=True)
+    # comments = serializers.SerializerMethodField(read_only=True)
 
     def get_liked_by(self, obj):
         return f"{len(obj.liked_by.all())} user(s)"
 
+    # def get_comments(self, obj):
+    #     comments = (
+    #         obj.post_comments
+    #         .select_related("user__profile", "post__user__profile", "parent__post__user__profile")
+    #         .prefetch_related("replies__user", "replies__parent")
+    #     )
+    #     return f"{comments.count()} comment(s)"
+
     class Meta:
         model = Post
         fields = [
-            "id", "title", "description", "user", "image", "hashtags", "liked_by"
+            "id",
+            "title",
+            "description",
+            "user",
+            "image",
+            "hashtags",
+            "liked_by",
+            # "comments"
         ]
 
 
@@ -55,12 +71,16 @@ class PostDetailSerializer(PostListSerializer):
 
     def get_liked_by(self, obj):
         return [
-            f"{member.first_name} {member.last_name} ({member.email}): {obj.like}"
-            for member in obj.liked_by.all()
+            f"{member.profile.first_name} {member.profile.last_name} ({member.email}): {obj.like}"
+            for member in obj.liked_by.select_related("profile")
         ]
 
     def get_comments(self, obj):
-        comments = obj.post_comments.all()
+        comments = (
+            obj.post_comments
+            .select_related("user", "post", "parent")
+            .prefetch_related("replies__user", "replies__parent")
+        )
         return populate_comment_data(comments)
 
     class Meta:
@@ -188,7 +208,7 @@ class CommentListSerializer(CommentSerializer):
         return f"{root.profile.first_name} " f"{root.profile.last_name} ({root.email})"
 
     def get_commented_by(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name} ({obj.user.email})"
+        return f"{obj.user.profile.first_name} {obj.user.profile.last_name} ({obj.user.email})"
 
     class Meta:
         model = Comment
@@ -207,7 +227,11 @@ class CommentDetailSerializer(CommentListSerializer):
     replies = serializers.SerializerMethodField(read_only=True)
 
     def get_replies(self, obj):
-        comments = obj.comments.filter(is_reply=True)
+        comments = (
+            obj.comments.filter(is_reply=True)
+            .select_related("user", "post", "parent")
+            .prefetch_related("replies__user", "replies__parent")
+        )
         return populate_comment_data(comments)
 
     class Meta:

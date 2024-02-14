@@ -51,6 +51,7 @@ class LogoutView(generics.GenericAPIView):
     def post(self, request):
         try:
             refresh_token = request.data["refresh_token"]
+            RefreshToken(refresh_token).blacklist()
             # print(refresh_token)
             # authorization_header = request.headers.get("Authorization")
             # if authorization_header and authorization_header.startswith("Bearer "):
@@ -64,8 +65,6 @@ class LogoutView(generics.GenericAPIView):
                 #     token=access_token, blacklisted_at=timezone.now()
                 # )
                 # token_record.save()
-
-            RefreshToken(refresh_token).blacklist()
 
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
