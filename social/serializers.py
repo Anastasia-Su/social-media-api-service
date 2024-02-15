@@ -1,4 +1,3 @@
-from django.db.models import Count
 from rest_framework import serializers
 from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
@@ -19,9 +18,6 @@ def populate_comment_data(query):
         )
 
     return comment_data
-
-def len_comments(query):
-    return len(query)
 
 
 class PostSerializer(TaggitSerializer, serializers.ModelSerializer):

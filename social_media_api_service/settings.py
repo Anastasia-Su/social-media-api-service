@@ -171,8 +171,8 @@ SPECTACULAR_SETTINGS = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1000),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "ROTATE_REFRESH_TOKENS": True,
     # "TOKEN_BLACKLIST_MODEL": "rest_framework_simplejwt.token_blacklist.models.BlacklistedToken",
     # 'BLACKLIST_AFTER_ROTATION': True,

@@ -59,8 +59,8 @@ class Profile(models.Model):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
-    # def __str__(self):
-    #     return f"{self.first_name} {self.last_name} ({get_user_model().email})"
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({get_user_model().email})"
 
 
 def post_picture_file_path(instance, filename):
@@ -104,8 +104,8 @@ class Post(models.Model):
     def comments_count(self):
         return self.post_comments.count()
 
-    # def __str__(self):
-    #     return f"{self.title} ({self.user})"
+    def __str__(self):
+        return f"{self.title} ({self.user})"
 
     class Meta:
         unique_together = ["title", "description"]
@@ -133,13 +133,3 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text
-
-
-class BlacklistToken(models.Model):
-    token = models.CharField(max_length=255)
-    blacklisted_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.token
-
-
