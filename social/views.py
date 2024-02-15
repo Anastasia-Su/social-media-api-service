@@ -123,10 +123,10 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        print("serializer.data", serializer.data)
+        print("request.data", serializer.data)
 
         task_result = delay_post_creation.apply_async(
-            args=[request.user.id, serializer.data], countdown=30
+            args=[request.user.id, serializer.data], countdown=20
         )
 
         if not task_result:

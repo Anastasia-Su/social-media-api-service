@@ -20,6 +20,8 @@ djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
 drf-spectacular==0.27.1
 flake8==7.0.0
+flower==2.0.1
+humanize==4.9.0
 inflection==0.5.1
 jsonschema==4.21.1
 jsonschema-specifications==2023.12.1
@@ -30,7 +32,9 @@ packaging==23.2
 pathspec==0.12.1
 pillow==10.2.0
 platformdirs==4.1.0
+prometheus_client==0.20.0
 prompt-toolkit==3.0.43
+psycopg2-binary==2.9.9
 pycodestyle==2.11.1
 pyflakes==3.2.0
 PyJWT==2.8.0
@@ -46,6 +50,7 @@ rpds-py==0.17.1
 six==1.16.0
 slugify==0.0.1
 sqlparse==0.4.4
+tornado==6.4
 tzdata==2023.4
 uritemplate==4.1.1
 uuid==1.30

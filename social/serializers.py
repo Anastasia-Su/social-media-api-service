@@ -25,6 +25,7 @@ class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
     user = serializers.CharField(read_only=True, source="user.email")
     hashtags = TagListSerializerField()
 
+
     def validate_hashtags(self, hashtags):
         return [tag.strip() for tag in hashtags[0].split(",")]
 

@@ -62,6 +62,9 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({get_user_model().email})"
 
+    class Meta:
+        ordering = ["id"]
+
 
 def post_picture_file_path(instance, filename):
     _, extension = os.path.splitext(filename)
@@ -134,3 +137,6 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text
+
+    class Meta:
+        ordering = ["post", "user", "id"]
