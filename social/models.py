@@ -49,7 +49,7 @@ class Profile(models.Model):
         ("F", "Follow"),
         ("U", "Unfollow"),
     )
-    follow = models.CharField(max_length=1, choices=FOLLOW_CHOICES)
+    follow = models.CharField(max_length=1, choices=FOLLOW_CHOICES, blank=True)
 
     i_like = models.ManyToManyField(
         "Post", blank=True, related_name="posts_i_like"
