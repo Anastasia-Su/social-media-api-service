@@ -1,0 +1,76 @@
+[
+  {
+    "model": "social.post",
+    "pk": 1,
+    "fields": {
+      "title": "First Post",
+      "description": "This is the first post description.",
+      "user": 1
+    }
+  },
+  {
+    "model": "social.post",
+    "pk": 2,
+    "fields": {
+      "title": "Second Post",
+      "description": "This is the second post description.",
+      "user": 2
+    }
+  },
+   {
+    "model": "social.comment",
+    "pk": 1,
+    "fields": {
+      "text": "First comment on the first post.",
+      "post": 1,
+      "user": 3,
+      "is_reply": false,
+      "parent": null,
+      "replies": []
+    }
+  },
+  {
+    "model": "social.comment",
+    "pk": 2,
+    "fields": {
+      "text": "Second comment on the first post.",
+      "post": 1,
+      "user": 2,
+      "is_reply": false,
+      "parent": null
+    }
+  },
+  {
+    "model": "social.comment",
+    "pk": 3,
+    "fields": {
+      "text": "First reply to the first comment.",
+      "post": 1,
+      "user": 1,
+      "is_reply": true,
+      "parent": 1
+    }
+  },
+  {
+    "model": "social.comment",
+    "pk": 4,
+    "fields": {
+      "text": "First comment on the second post.",
+      "post": 2,
+      "user": 2,
+      "is_reply": false,
+      "parent": null
+    }
+  },
+  {
+    "model": "social.comment",
+    "pk": 5,
+    "fields": {
+      "text": "Second comment on the second post.",
+      "post": 2,
+      "user": 3,
+      "is_reply": false,
+      "parent": null
+    }
+  }
+]

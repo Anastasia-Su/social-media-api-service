@@ -81,7 +81,7 @@ class Post(models.Model):
         blank=True,
         upload_to=post_picture_file_path
     )
-    hashtags = TaggableManager()
+    hashtags = TaggableManager(blank=True)
     follow = models.CharField(
         max_length=1,
         choices=Profile.FOLLOW_CHOICES,
@@ -109,6 +109,7 @@ class Post(models.Model):
 
     class Meta:
         unique_together = ["title", "description"]
+        ordering = ["user", "id"]
 
 
 class Comment(models.Model):

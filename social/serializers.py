@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.utils import json
 from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
@@ -23,6 +24,9 @@ def populate_comment_data(query):
 class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
     user = serializers.CharField(read_only=True, source="user.email")
     hashtags = TagListSerializerField()
+
+    def validate_hashtags(self, hashtags):
+        return [tag.strip() for tag in hashtags[0].split(",")]
 
     class Meta:
         model = Post
@@ -107,10 +111,10 @@ class ProfileListSerializer(ProfileSerializer):
     is_following = serializers.SerializerMethodField(read_only=True)
 
     def get_followers(self, obj):
-        return f"{len(obj.followers.all())} user(s)"
+        return f"{obj.followers.count()} user(s)"
 
     def get_is_following(self, obj):
-        return f"{len(obj.is_following.all())} user(s)"
+        return f"{obj.is_following.count()} user(s)"
 
     def get_user(self, obj):
         return f"{obj.first_name} {obj.last_name} ({obj.user.email})"
@@ -185,14 +189,14 @@ class CommentSerializer(serializers.ModelSerializer):
 class CommentListSerializer(CommentSerializer):
     commented_by = serializers.SerializerMethodField(read_only=True)
     post = serializers.SerializerMethodField(read_only=True)
-    author = serializers.SerializerMethodField(read_only=True)
+    post_author = serializers.SerializerMethodField(read_only=True)
 
     def get_post(self, obj):
         if obj.parent:
             return obj.parent.post.title
         return obj.post.title
 
-    def get_author(self, obj):
+    def get_post_author(self, obj):
         root = obj.post.user
         if obj.parent:
             root = obj.parent.post.user
@@ -206,7 +210,7 @@ class CommentListSerializer(CommentSerializer):
         fields = [
             "id",
             "post",
-            "author",
+            "post_author",
             "commented_by",
             "text",
             "is_reply",
@@ -230,7 +234,7 @@ class CommentDetailSerializer(CommentListSerializer):
         fields = [
             "id",
             "post",
-            "author",
+            "post_author",
             "commented_by",
             "text",
             "is_reply",

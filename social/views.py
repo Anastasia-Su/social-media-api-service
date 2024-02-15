@@ -123,6 +123,8 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        print("serializer.data", serializer.data)
+
         task_result = delay_post_creation.apply_async(
             args=[request.user.id, serializer.data], countdown=30
         )
@@ -186,7 +188,7 @@ class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
         "followers__profile", "is_following__profile"
     )
     serializer_class = ProfileSerializer
-    permission_classes = (IsAuthenticatedReadOnly,)
+    permission_classes = (IsAuthenticated,)
 
     @action(
         methods=["POST"],
