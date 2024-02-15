@@ -1,3 +1,4 @@
+from django.db.models import Count
 from rest_framework import serializers
 from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
@@ -19,6 +20,9 @@ def populate_comment_data(query):
 
     return comment_data
 
+def len_comments(query):
+    return len(query)
+
 
 class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
     user = serializers.CharField(read_only=True, source="user.email")
@@ -38,18 +42,9 @@ class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
 
 class PostListSerializer(PostSerializer):
     liked_by = serializers.SerializerMethodField(read_only=True)
-    # comments = serializers.SerializerMethodField(read_only=True)
 
     def get_liked_by(self, obj):
         return f"{len(obj.liked_by.all())} user(s)"
-
-    # def get_comments(self, obj):
-    #     comments = (
-    #         obj.post_comments
-    #         .select_related("user__profile", "post__user__profile", "parent__post__user__profile")
-    #         .prefetch_related("replies__user", "replies__parent")
-    #     )
-    #     return f"{comments.count()} comment(s)"
 
     class Meta:
         model = Post
@@ -61,7 +56,7 @@ class PostListSerializer(PostSerializer):
             "image",
             "hashtags",
             "liked_by",
-            # "comments"
+            "comments_count"
         ]
 
 

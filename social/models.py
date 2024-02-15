@@ -100,6 +100,10 @@ class Post(models.Model):
 
     comments = models.ManyToManyField("Comment", blank=True, related_name="posts")
 
+    @property
+    def comments_count(self):
+        return self.post_comments.count()
+
     # def __str__(self):
     #     return f"{self.title} ({self.user})"
 

@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Count
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, status
@@ -41,7 +41,11 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
     queryset = (
         Post.objects
         .select_related("user")
-        .prefetch_related("hashtags", "liked_by")
+        .prefetch_related(
+            "post_comments",
+            "hashtags",
+            "liked_by",
+        )
     )
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated,)
