@@ -119,6 +119,7 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         """Converts a list of string IDs to a list of strings"""
         return [tag.strip() for tag in qs.split(",")]
 
+    # Uncomment it to delay post creation
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
