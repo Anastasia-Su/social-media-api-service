@@ -30,7 +30,7 @@ from .serializers import (
     CommentCreateSerializer,
     CommentListSerializer,
     CommentDetailSerializer,
-    CommentReplySerializer,
+    CommentReplySerializer
 )
 
 from .tasks import delay_post_creation
@@ -52,6 +52,7 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         permission_classes=[IsAuthenticated],
     )
     def toggle_like(self, request, pk):
+        """Endpoint for liking and disliking specific post"""
         post = self.get_object()
         return self.toggle_like_common(request, post)
 
@@ -62,6 +63,7 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         permission_classes=[IsAuthenticated],
     )
     def add_comment(self, request, pk):
+        """Endpoint for adding comments to specific post"""
         post = self.get_object()
         user = request.user
         text = request.data.get("text", "")
@@ -115,32 +117,33 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         """Converts a list of string IDs to a list of strings"""
         return [tag.strip() for tag in qs.split(",")]
 
-    # Uncomment it to delay post creation
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    # UNCOMMENT IT TO DELAY POST CREATION
 
-        try:
-            serializer.save(user=request.user)
-        except IntegrityError as e:
-            return Response(
-                {"error": "Failed to create post: " + str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        task_result = delay_post_creation.apply_async(
-            args=[request.user.id, serializer.data], countdown=10
-        )
-
-        if not task_result:
-            return Response(
-                {"error": "Failed to schedule task"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        return Response(
-            {"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED
-        )
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #
+    #     try:
+    #         serializer.save(user=request.user)
+    #     except IntegrityError as e:
+    #         return Response(
+    #             {"error": "Failed to create post: " + str(e)},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
+    #
+    #     task_result = delay_post_creation.apply_async(
+    #         args=[request.user.id, serializer.data], countdown=10
+    #     )
+    #
+    #     if not task_result:
+    #         return Response(
+    #             {"error": "Failed to schedule task"},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
+    #
+    #     return Response(
+    #         {"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED
+    #     )
 
     def get_queryset(self):
         user = self.request.query_params.get("user")
@@ -202,6 +205,7 @@ class ProfileViewSet(viewsets.ModelViewSet, ToggleFollowMixin):
         permission_classes=[IsAuthenticated],
     )
     def toggle_follow(self, request, pk):
+        """Endpoint for following specific user"""
         profile = get_object_or_404(Profile, pk=pk)
         return self.toggle_follow_common(request, profile)
 
@@ -266,6 +270,7 @@ class ILikeViewSet(PostViewSet, ProfileViewSet, ToggleLikeMixin):
         permission_classes=[IsAuthenticated],
     )
     def toggle_like(self, request, pk):
+        """Endpoint for liking and disliking specific post"""
         post = self.get_object()
         return self.toggle_like_common(request, post)
 
@@ -273,8 +278,6 @@ class ILikeViewSet(PostViewSet, ProfileViewSet, ToggleLikeMixin):
         profile = Profile.objects.get(user=self.request.user)
         queryset = (
             profile.i_like.all()
-            # .select_related("user")
-            # .prefetch_related("liked_by__profile", "hashtags")
         )
         return queryset
 
@@ -294,6 +297,7 @@ class IFollowViewSet(PostViewSet, ToggleFollowMixin):
         permission_classes=[IsAuthenticated],
     )
     def toggle_follow(self, request, pk):
+        """Endpoint for following specific user"""
         post = get_object_or_404(Post, pk=pk)
         return self.toggle_follow_common(request, post)
 
@@ -340,6 +344,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def reply(self, request, pk):
+        """Endpoint for replying to the comment"""
         comment = self.get_object()
         user = request.user
         reply = request.data.get("reply", "")
@@ -372,3 +377,21 @@ class CommentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(text__icontains=text)
 
         return queryset.distinct()
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "text",
+                type=OpenApiTypes.STR,
+                description="Filter by comment text (ex. ?text=comm)",
+            ),
+            OpenApiParameter(
+                "user",
+                type=OpenApiTypes.STR,
+                description="Filter by user (ex. ?user=j)",
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
