@@ -1,9 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from social.models import Profile
-from social.serializers import ProfileSerializer
-
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -39,7 +36,3 @@ class UserSerializer(serializers.ModelSerializer):
 
 class LogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField()
-    #
-    # class Meta:
-    #     model = get_user_model()
-    #     fields = ["refresh_token"]

@@ -11,10 +11,10 @@ def delay_post_creation(user_id, post_data) -> int | Exception:
             user = get_user_model().objects.get(pk=user_id)
             post = Post.objects.create(
                 user=user,
-                title=post_data['title'],
-                description=post_data['description'],
-                hashtags=post_data['hashtags'],
-                image=post_data.get('image')
+                title=post_data["title"],
+                description=post_data["description"],
+                hashtags=post_data["hashtags"],
+                image=post_data.get("image"),
             )
             post.save()
 
