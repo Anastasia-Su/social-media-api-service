@@ -145,6 +145,10 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
     #         {"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED
     #     )
 
+    # COMMENT IT IF YOU USE CELERY
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
     def get_queryset(self):
         user = self.request.query_params.get("user")
         text = self.request.query_params.get("text")

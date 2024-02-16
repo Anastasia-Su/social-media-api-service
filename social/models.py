@@ -7,14 +7,6 @@ from django.utils.text import slugify
 from taggit.managers import TaggableManager
 
 
-# class CustomTaggableManager(TaggableManager):
-#     def value_from_object(self, instance):
-#         value = super().value_from_object(instance)
-#         if isinstance(value, str):
-#             return value.split(',')
-#         return value
-
-
 def profile_picture_file_path(instance, filename):
     _, extension = os.path.splitext(filename)
     filename = f"{slugify(instance.last_name)}-{uuid.uuid4()}{extension}"

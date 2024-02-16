@@ -38,7 +38,7 @@ docker-compose up
 
 ## Celery
 
-To use Celery, uncomment `create` method in `social > views.py > PostViewSet`.
+To use Celery, uncomment `create` method and comment `perform_create` method in `social > views.py > PostViewSet`.
 Set desired countdown.
 
 Set up:
