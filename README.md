@@ -41,14 +41,9 @@ docker-compose up
 To use Celery, uncomment `create` method in `social > views.py > PostViewSet`.
 Set desired countdown.
 
-Set up (Windows):
+Set up:
 ```shell
-- wsl --install 
-- curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-- echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-- sudo apt-get install redis
-- sudo service redis-server start
-
+- docker run -d -p 6379:6379 redis
 - celery -A social_media_api_service worker -l INFO -P solo 
 ```
 

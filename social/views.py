@@ -1,5 +1,5 @@
-from django.contrib.auth import get_user_model
-from django.db.models import Q, Prefetch, Count
+from django.db import IntegrityError
+from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, status
@@ -37,14 +37,10 @@ from .tasks import delay_post_creation
 
 
 class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
-    queryset = (
-        Post.objects
-        .select_related("user")
-        .prefetch_related(
-            "post_comments",
-            "hashtags",
-            "liked_by",
-        )
+    queryset = Post.objects.select_related("user").prefetch_related(
+        "post_comments",
+        "hashtags",
+        "liked_by",
     )
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated,)
@@ -124,19 +120,27 @@ class PostViewSet(viewsets.ModelViewSet, ToggleLikeMixin):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        print("request.data", serializer.data)
+        try:
+            serializer.save(user=request.user)
+        except IntegrityError as e:
+            return Response(
+                {"error": "Failed to create post: " + str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         task_result = delay_post_creation.apply_async(
-            args=[request.user.id, serializer.data], countdown=20
+            args=[request.user.id, serializer.data], countdown=10
         )
 
         if not task_result:
-            return Response({"error": "Failed to schedule task"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": "Failed to schedule task"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        return Response({"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        return Response(
+            {"message": "Post creation scheduled"}, status=status.HTTP_202_ACCEPTED
+        )
 
     def get_queryset(self):
         user = self.request.query_params.get("user")

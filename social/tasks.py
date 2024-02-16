@@ -10,9 +10,13 @@ def delay_post_creation(user_id, post_data) -> int | Exception:
         with transaction.atomic():
             user = get_user_model().objects.get(pk=user_id)
             post = Post.objects.create(
-                user=user, **post_data
+                user=user,
+                title=post_data['title'],
+                description=post_data['description'],
+                hashtags=post_data['hashtags'],
+                image=post_data.get('image')
             )
-            return post.id
+            post.save()
 
     except Exception as e:
         return str(e)

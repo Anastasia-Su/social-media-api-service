@@ -82,7 +82,7 @@ class Post(models.Model):
     image = models.ImageField(
         null=True,
         blank=True,
-        upload_to=post_picture_file_path
+        upload_to=post_picture_file_path,
     )
     hashtags = TaggableManager(blank=True)
     follow = models.CharField(

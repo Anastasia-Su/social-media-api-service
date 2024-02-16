@@ -1,6 +1,4 @@
 from rest_framework import serializers
-from rest_framework.utils import json
-from taggit.models import Tag
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 
 from .models import Post, Profile, Comment
@@ -23,8 +21,7 @@ def populate_comment_data(query):
 
 class PostSerializer(TaggitSerializer, serializers.ModelSerializer):
     user = serializers.CharField(read_only=True, source="user.email")
-    hashtags = TagListSerializerField()
-
+    hashtags = TagListSerializerField(required=False)
 
     def validate_hashtags(self, hashtags):
         return [tag.strip() for tag in hashtags[0].split(",")]
@@ -57,7 +54,7 @@ class PostListSerializer(PostSerializer):
             "image",
             "hashtags",
             "liked_by",
-            "comments_count"
+            "comments_count",
         ]
 
 
@@ -67,16 +64,15 @@ class PostDetailSerializer(PostListSerializer):
 
     def get_liked_by(self, obj):
         return [
-            f"{member.profile.first_name} {member.profile.last_name} ({member.email}): {obj.like}"
+            (f"{member.profile.first_name} "
+             f"{member.profile.last_name} ({member.email}): {obj.like}")
             for member in obj.liked_by.select_related("profile")
         ]
 
     def get_comments(self, obj):
-        comments = (
-            obj.post_comments
-            .select_related("user", "post", "parent")
-            .prefetch_related("replies__user", "replies__parent")
-        )
+        comments = obj.post_comments.select_related(
+            "user", "post", "parent"
+        ).prefetch_related("replies__user", "replies__parent")
         return populate_comment_data(comments)
 
     class Meta:
@@ -89,21 +85,14 @@ class PostDetailSerializer(PostListSerializer):
             "image",
             "hashtags",
             "comments",
-            "liked_by"
+            "liked_by",
         ]
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = [
-            "id",
-            "first_name",
-            "last_name",
-            "bio",
-            "image",
-            "follow"
-        ]
+        fields = ["id", "first_name", "last_name", "bio", "image", "follow"]
 
 
 class ProfileListSerializer(ProfileSerializer):
@@ -122,9 +111,7 @@ class ProfileListSerializer(ProfileSerializer):
 
     class Meta:
         model = Profile
-        fields = [
-            "id", "user", "image", "followers", "is_following"
-        ]
+        fields = ["id", "user", "image", "followers", "is_following"]
 
 
 class ProfileDetailSerializer(ProfileSerializer):
@@ -182,9 +169,7 @@ class LikePostActionSerializer(PostSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = [
-            "id", "post", "user", "text", "is_reply", "parent"
-        ]
+        fields = ["id", "post", "user", "text", "is_reply", "parent"]
 
 
 class CommentListSerializer(CommentSerializer):
@@ -204,7 +189,9 @@ class CommentListSerializer(CommentSerializer):
         return f"{root.profile.first_name} " f"{root.profile.last_name} ({root.email})"
 
     def get_commented_by(self, obj):
-        return f"{obj.user.profile.first_name} {obj.user.profile.last_name} ({obj.user.email})"
+        return (f"{obj.user.profile.first_name} "
+                f"{obj.user.profile.last_name} "
+                f"({obj.user.email})")
 
     class Meta:
         model = Comment
@@ -215,7 +202,7 @@ class CommentListSerializer(CommentSerializer):
             "commented_by",
             "text",
             "is_reply",
-            "parent"
+            "parent",
         ]
 
 
