@@ -125,7 +125,6 @@ class Comment(models.Model):
         on_delete=models.SET_NULL,
         related_name="comments"
     )
-    # replies = models.ManyToManyField("Comment", blank=True)
 
     def __str__(self):
         return self.text

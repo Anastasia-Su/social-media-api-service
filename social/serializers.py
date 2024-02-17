@@ -73,7 +73,7 @@ class PostDetailSerializer(PostListSerializer):
     def get_comments(self, obj):
         comments = obj.post_comments.select_related(
             "user", "post", "parent"
-        ).prefetch_related("comments__user", "comments__parent")
+        ).prefetch_related("user", "parent")
         return populate_comment_data(comments)
 
     class Meta:
@@ -214,7 +214,7 @@ class CommentDetailSerializer(CommentListSerializer):
         comments = (
             obj.comments.filter(is_reply=True)
             .select_related("user", "post", "parent")
-            .prefetch_related("posts__user", "posts__parent")
+            .prefetch_related("user", "parent")
         )
         return populate_comment_data(comments)
 
