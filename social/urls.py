@@ -17,6 +17,6 @@ router.register("ilike", ILikeViewSet, basename="ilike")
 router.register("profiles", ProfileViewSet, basename="profiles")
 router.register("comments", CommentViewSet, basename="comments")
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = router.urls
 
 app_name = "social"

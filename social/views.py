@@ -311,7 +311,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         "user__profile",
         "post__user__profile",
         "parent__post__user__profile",
-    ).prefetch_related("replies__user", "replies__parent")
+    ).prefetch_related("posts__user", "posts__parent")
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticated,)
 

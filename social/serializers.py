@@ -9,6 +9,7 @@ def populate_comment_data(query):
     for comment in query:
         comment_data.append(
             {
+                "id": comment.id,
                 "text": comment.text,
                 "user": str(comment.user),
                 "is_reply": comment.is_reply,
@@ -72,7 +73,7 @@ class PostDetailSerializer(PostListSerializer):
     def get_comments(self, obj):
         comments = obj.post_comments.select_related(
             "user", "post", "parent"
-        ).prefetch_related("replies__user", "replies__parent")
+        ).prefetch_related("comments__user", "comments__parent")
         return populate_comment_data(comments)
 
     class Meta:
@@ -213,7 +214,7 @@ class CommentDetailSerializer(CommentListSerializer):
         comments = (
             obj.comments.filter(is_reply=True)
             .select_related("user", "post", "parent")
-            .prefetch_related("replies__user", "replies__parent")
+            .prefetch_related("posts__user", "posts__parent")
         )
         return populate_comment_data(comments)
 
